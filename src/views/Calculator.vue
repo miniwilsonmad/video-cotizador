@@ -22,6 +22,22 @@
         </span>
       </nav>
 
+      <!-- VOICE BANNER -->
+      <Transition name="fade-up">
+        <div v-if="voiceBanner" class="voice-banner" :class="voiceBanner.type">
+          <span class="voice-banner-icon">{{ voiceBanner.type === 'partial' ? '🎤' : '✅' }}</span>
+          <div class="voice-banner-body">
+            <template v-if="voiceBanner.found.length">
+              <strong>Entendí:</strong> {{ voiceBanner.found.join(', ') }}<br/>
+            </template>
+            <template v-if="voiceBanner.missing.length">
+              <em>Falta:</em> {{ voiceBanner.missing.join(' y ') }} — selecciona abajo
+            </template>
+          </div>
+          <button class="voice-banner-close" @click="dismissBanner">×</button>
+        </div>
+      </Transition>
+
       <!-- STEP 1: SERVICE CARDS -->
       <Transition name="slide" mode="out-in">
         <section v-if="step === 1" key="step1" class="step-body">
@@ -136,13 +152,44 @@
       </Transition>
     </div>
   </main>
+
+  <!-- FLOATING MIC BUTTON -->
+  <div v-if="voiceSupported" class="voice-fab-container">
+    <Transition name="fade-up">
+      <div v-if="voiceError" class="voice-error-toast">
+        {{ voiceError }}
+        <button @click="voiceError = null">×</button>
+      </div>
+    </Transition>
+    <button
+      :class="['voice-fab', { listening: isListening }]"
+      @click="isListening ? voiceStop() : voiceStart('es-CR')"
+      :title="isListening ? 'Detener' : 'Dictar cotización'"
+    >
+      <span class="voice-fab-icon">{{ isListening ? '⏹' : '🎤' }}</span>
+    </button>
+    <Transition name="fade-up">
+      <span v-if="isListening" class="voice-fab-label">Escuchando...</span>
+    </Transition>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
 import { useConfig } from "../composables/useConfig.js";
+import { useVoiceInput } from "../composables/useVoiceInput.js";
+import { parseVoiceInput } from "../composables/useVoiceParser.js";
 
 const { config, fetchFromSheets } = useConfig();
+const {
+  isListening,
+  transcript,
+  error: voiceError,
+  isSupported: voiceSupported,
+  start: voiceStart,
+  stop: voiceStop,
+  cancel: voiceCancel,
+} = useVoiceInput();
 
 onMounted(async () => {
   if (config.sheetsServicesUrl && config.sheetsExtrasUrl) {
@@ -217,6 +264,61 @@ function restart() {
   lengthId.value = null;
   extraIds.value = [];
   showSummary.value = false;
+  voiceBanner.value = null;
+}
+
+// ── Voice input ──────────────────────────
+const voiceBanner = ref(null); // { type: 'success'|'partial', found: [...], missing: [...] }
+
+// Watch transcript: when voice recognition completes, parse and apply
+watch(
+  () => transcript.value,
+  (text) => {
+    if (!text) return;
+    applyVoiceInput(text);
+  }
+);
+
+function applyVoiceInput(text) {
+  const result = parseVoiceInput(text, config);
+
+  // Aplicar lo que se encontró
+  if (result.serviceId) serviceId.value = result.serviceId;
+  if (result.lengthId) lengthId.value = result.lengthId;
+  if (result.extraIds.length) extraIds.value = result.extraIds;
+
+  // Construir banner de feedback
+  const found = [];
+  if (result.serviceId) found.push(result._serviceLabel);
+  if (result.lengthId) found.push(result._lengthLabel);
+  result.extraIds.forEach((id) => {
+    const ex = config.extras.find((e) => e.id === id);
+    if (ex) found.push(ex.label);
+  });
+
+  if (result.missing.length === 0) {
+    // Todo encontrado: ir directo al resumen
+    voiceBanner.value = null;
+    showSummary.value = true;
+  } else {
+    // Faltan campos: navegar al paso que falta
+    if (result.missing.includes("servicio")) {
+      step.value = 1;
+    } else if (result.missing.includes("duración")) {
+      step.value = 2;
+    } else {
+      step.value = 3;
+    }
+    voiceBanner.value = {
+      type: "partial",
+      found,
+      missing: result.missing,
+    };
+  }
+}
+
+function dismissBanner() {
+  voiceBanner.value = null;
 }
 function money(value) {
   return usd.format(value);
