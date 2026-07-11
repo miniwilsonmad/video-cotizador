@@ -36,6 +36,11 @@ export function useVoiceInput() {
       recognition.abort();
     }
 
+    // Activar feedback visual INMEDIATAMENTE (antes de start())
+    isListening.value = true;
+    error.value = null;
+    transcript.value = "";
+
     recognition = new SpeechRecognition();
     recognition.lang = lang;
     recognition.interimResults = false;
@@ -43,9 +48,8 @@ export function useVoiceInput() {
     recognition.continuous = false;
 
     recognition.onstart = () => {
+      // Ya activado arriba, pero re-confirmamos
       isListening.value = true;
-      error.value = null;
-      transcript.value = "";
     };
 
     recognition.onresult = (event) => {
@@ -69,7 +73,13 @@ export function useVoiceInput() {
       isListening.value = false;
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (err) {
+      // Error síncrono (ej. permiso no concedido, API bloqueada)
+      error.value = err.message || "No se pudo iniciar el micrófono.";
+      isListening.value = false;
+    }
   }
 
   /**
