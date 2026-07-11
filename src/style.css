@@ -447,6 +447,32 @@ a {
   font-weight: 700;
   margin-bottom: 1.5rem;
 }
+
+.summary-totals {
+  margin-bottom: 1.5rem;
+}
+
+.summary-totals .summary-row {
+  border-radius: 0;
+}
+
+.summary-totals .subtotal-row {
+  background: #1a1e26;
+  border-radius: 12px 12px 0 0;
+  color: #8b949e;
+}
+
+.summary-totals .iva-row {
+  background: #1a1e26;
+  color: #d29922;
+}
+
+.summary-totals .summary-total {
+  border-radius: 0 0 12px 12px;
+  margin-bottom: 0;
+  border-top: none;
+}
+
 .total-price {
   font-size: 1.75rem;
   font-weight: 800;

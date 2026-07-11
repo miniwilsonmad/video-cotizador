@@ -113,9 +113,19 @@
             </div>
           </div>
 
-          <div class="summary-total">
-            <span>Total</span>
-            <span class="total-price">{{ money(total) }}</span>
+          <div class="summary-totals">
+            <div class="summary-row subtotal-row">
+              <span>Subtotal</span>
+              <span class="amount">{{ money(subtotal) }}</span>
+            </div>
+            <div class="summary-row iva-row">
+              <span>IVA (13%)</span>
+              <span class="amount">+{{ money(iva) }}</span>
+            </div>
+            <div class="summary-total">
+              <span>Total</span>
+              <span class="total-price">{{ money(totalConIVA) }}</span>
+            </div>
           </div>
 
           <div class="summary-actions">
@@ -158,16 +168,16 @@ const selectedService = computed(() => config.services.find((s) => s.id === serv
 const availableLengths = computed(() => selectedService.value?.lengths ?? []);
 const selectedLength = computed(() => availableLengths.value.find((l) => l.id === lengthId.value) ?? null);
 const selectedExtras = computed(() => config.extras.filter((e) => extraIds.value.includes(e.id)));
+const IVA_RATE = 0.13;
+
 const basePrice = computed(() => selectedLength.value?.price ?? 0);
 const extrasTotal = computed(() => selectedExtras.value.reduce((sum, e) => sum + e.price, 0));
-const total = computed(() => basePrice.value + extrasTotal.value);
+const subtotal = computed(() => basePrice.value + extrasTotal.value);
+const iva = computed(() => Math.round(subtotal.value * IVA_RATE));
+const totalConIVA = computed(() => subtotal.value + iva.value);
 
-// Running total shown on step 3 button
-const currentRunningTotal = computed(() => {
-  const base = basePrice.value;
-  const extras = selectedExtras.value.reduce((sum, e) => sum + e.price, 0);
-  return base + extras;
-});
+// Running total shown on step 3 button (subtotal sin IVA)
+const currentRunningTotal = computed(() => subtotal.value);
 
 const progressPct = computed(() => ((step.value - 1) / (TOTAL_STEPS - 1)) * 100);
 
