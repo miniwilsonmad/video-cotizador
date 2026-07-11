@@ -383,6 +383,30 @@ a {
   background: #30363d;
   border-color: #8b949e;
 }
+.btn-pdf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.75rem 1.75rem;
+  background: linear-gradient(135deg, #f0883e, #d4572a);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.btn-pdf:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(240, 136, 62, 0.4);
+}
+.btn-pdf:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* ── Summary ────────────────────────────── */
 .summary {
@@ -662,6 +686,38 @@ a {
 }
 .voice-banner-close:hover {
   opacity: 1;
+}
+
+/* ── Client name input ──────────────────── */
+.client-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding: 0.6rem 1rem;
+  background: #161b22;
+  border: 1.5px solid #30363d;
+  border-radius: 10px;
+}
+.client-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #8b949e;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.client-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #e6edf3;
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.35rem 0;
+  outline: none;
+}
+.client-input::placeholder {
+  color: #484f58;
 }
 
 /* ── Responsive ─────────────────────────── */

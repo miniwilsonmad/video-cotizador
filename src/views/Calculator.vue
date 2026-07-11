@@ -22,6 +22,18 @@
         </span>
       </nav>
 
+      <!-- CLIENT NAME -->
+      <div class="client-name-row">
+        <label class="client-label" for="clientName">Cliente</label>
+        <input
+          id="clientName"
+          v-model="clientName"
+          type="text"
+          class="client-input"
+          placeholder="Nombre del cliente o empresa"
+        />
+      </div>
+
       <!-- VOICE BANNER -->
       <Transition name="fade-up">
         <div v-if="voiceBanner" class="voice-banner" :class="voiceBanner.type">
@@ -147,6 +159,9 @@
           <div class="summary-actions">
             <button class="btn-secondary" @click="showSummary = false">← Ajustar</button>
             <button class="btn-primary" @click="restart">Nueva cotización</button>
+            <button class="btn-pdf" @click="downloadPdf" :disabled="generatingPdf">
+              {{ generatingPdf ? 'Generando...' : '📄 Descargar PDF' }}
+            </button>
           </div>
         </div>
       </Transition>
@@ -179,6 +194,7 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useConfig } from "../composables/useConfig.js";
 import { useVoiceInput } from "../composables/useVoiceInput.js";
 import { parseVoiceInput } from "../composables/useVoiceParser.js";
+import { generatePdf } from "../composables/usePdfGenerator.js";
 
 const { config, fetchFromSheets } = useConfig();
 const {
@@ -210,6 +226,8 @@ const step = ref(1);
 const serviceId = ref(null);
 const lengthId = ref(null);
 const extraIds = ref([]);
+const clientName = ref("");
+const generatingPdf = ref(false);
 
 const selectedService = computed(() => config.services.find((s) => s.id === serviceId.value) ?? null);
 const availableLengths = computed(() => selectedService.value?.lengths ?? []);
@@ -265,6 +283,31 @@ function restart() {
   extraIds.value = [];
   showSummary.value = false;
   voiceBanner.value = null;
+  clientName.value = "";
+}
+
+async function downloadPdf() {
+  generatingPdf.value = true;
+  try {
+    const result = await generatePdf({
+      clientName: clientName.value || "Cliente",
+      serviceLabel: selectedService.value?.label ?? "",
+      lengthLabel: selectedLength.value?.label ?? "",
+      extras: selectedExtras.value,
+      basePrice: basePrice.value,
+      extrasTotal: extrasTotal.value,
+      subtotal: subtotal.value,
+      iva: iva.value,
+      total: totalConIVA.value,
+    });
+    if (!result.success) {
+      alert("Error al generar PDF: " + result.error);
+    }
+  } catch (e) {
+    alert("Error al generar PDF: " + e.message);
+  } finally {
+    generatingPdf.value = false;
+  }
 }
 
 // ── Voice input ──────────────────────────
