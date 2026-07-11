@@ -1,5 +1,8 @@
 export const defaultConfig = {
   adminPassword: "admin123",
+  sheetsServicesUrl: "",
+  sheetsExtrasUrl: "",
+  _lastSync: null,
   services: [
     {
       id: "corporate",

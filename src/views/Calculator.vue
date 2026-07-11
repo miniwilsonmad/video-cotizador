@@ -80,10 +80,17 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useConfig } from "../composables/useConfig.js";
 
-const { config } = useConfig();
+const { config, fetchFromSheets } = useConfig();
+
+// Auto-sync from Google Sheets on load if URLs are configured
+onMounted(async () => {
+  if (config.sheetsServicesUrl && config.sheetsExtrasUrl) {
+    await fetchFromSheets();
+  }
+});
 
 const usd = new Intl.NumberFormat("en-US", {
   style: "currency",

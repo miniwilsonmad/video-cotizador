@@ -93,6 +93,24 @@
             <button v-if="showImport" @click="doImport">Cargar</button>
           </div>
           <div class="card">
+            <h4>☁️ Google Sheets (fuente de datos)</h4>
+            <p class="help">Publica cada pestaña como CSV desde Archivo → Compartir → Publicar en la web.</p>
+            <label>
+              CSV Servicios
+              <input v-model="sheetsSvcUrl" type="url" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?gid=0&single=true&output=csv" />
+            </label>
+            <label>
+              CSV Extras
+              <input v-model="sheetsExtUrl" type="url" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?gid=123&single=true&output=csv" />
+            </label>
+            <div class="row-buttons">
+              <button @click="saveSheetUrls">💾 Guardar URLs</button>
+              <button class="secondary" @click="syncSheets" :disabled="syncing">{{ syncing ? '⏳ Sincronizando...' : '🔄 Sincronizar ahora' }}</button>
+            </div>
+            <p v-if="sheetsMsg" :class="sheetsMsgType">{{ sheetsMsg }}</p>
+            <p v-if="config._lastSync" class="help">Última sincronización: {{ new Date(config._lastSync).toLocaleString() }}</p>
+          </div>
+          <div class="card">
             <button class="secondary" @click="logout">🔒 Cerrar sesión</button>
           </div>
         </section>
@@ -105,7 +123,7 @@
 import { ref } from "vue";
 import { useConfig } from "../composables/useConfig.js";
 
-const { config, resetToDefaults, exportConfig, importConfig, verifyPassword } = useConfig();
+const { config, resetToDefaults, exportConfig, importConfig, verifyPassword, fetchFromSheets, setSheetUrls } = useConfig();
 
 // Auth
 const authenticated = ref(false);
@@ -222,6 +240,47 @@ function doImport() {
 function doReset() {
   if (confirm("¿Restaurar toda la configuración a los valores por defecto? Se perderán tus cambios.")) {
     resetToDefaults();
+    sheetsSvcUrl.value = "";
+    sheetsExtUrl.value = "";
+  }
+}
+
+// Google Sheets
+const sheetsSvcUrl = ref(config.sheetsServicesUrl || "");
+const sheetsExtUrl = ref(config.sheetsExtrasUrl || "");
+const syncing = ref(false);
+const sheetsMsg = ref("");
+const sheetsMsgType = ref("");
+
+function saveSheetUrls() {
+  setSheetUrls(sheetsSvcUrl.value.trim(), sheetsExtUrl.value.trim());
+  sheetsMsg.value = "✓ URLs guardadas. Usa 'Sincronizar ahora' para cargar los datos.";
+  sheetsMsgType.value = "";
+  setTimeout(() => (sheetsMsg.value = ""), 4000);
+}
+
+async function syncSheets() {
+  if (!sheetsSvcUrl.value.trim() || !sheetsExtUrl.value.trim()) {
+    sheetsMsg.value = "Primero ingresa y guarda ambas URLs.";
+    sheetsMsgType.value = "error";
+    return;
+  }
+  syncing.value = true;
+  sheetsMsg.value = "";
+  try {
+    const result = await fetchFromSheets();
+    if (result.success) {
+      sheetsMsg.value = `✓ Sincronizado: ${result.services} servicios, ${result.extras} extras.`;
+      sheetsMsgType.value = "";
+    } else {
+      sheetsMsg.value = "✕ " + result.error;
+      sheetsMsgType.value = "error";
+    }
+  } catch (e) {
+    sheetsMsg.value = "✕ Error de red: " + e.message;
+    sheetsMsgType.value = "error";
+  } finally {
+    syncing.value = false;
   }
 }
 </script>
@@ -317,5 +376,10 @@ function doReset() {
 .danger {
   color: #d93526;
   border-color: #d93526;
+}
+.help {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  margin-top: 0.25rem;
 }
 </style>
